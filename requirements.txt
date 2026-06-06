@@ -1,0 +1,7 @@
+# Gestor de Documentos Normativos — Equipe 08
+fastapi>=0.110
+uvicorn[standard]>=0.29
+
+# Testes
+pytest>=8.0
+httpx>=0.27          # requerido pelo fastapi.testclient.TestClient

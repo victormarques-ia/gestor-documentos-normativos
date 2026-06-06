@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+
+# Conteúdo dos documentos: a pasta é versionada, o conteúdo não.
+backend/storage/*
+!backend/storage/.gitkeep
+
+# SO / editores
+.DS_Store
+.idea/
+.vscode/
