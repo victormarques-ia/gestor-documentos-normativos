@@ -49,18 +49,20 @@ projeto-sistemas-distribuidos-equipe-8/
 ├── conftest.py                  # torna backend/app importável nos testes
 ├── backend/
 │   ├── app/
-│   │   ├── main.py              # app FastAPI, /health, startup do estado
+│   │   ├── main.py              # app FastAPI, /health, logging, startup do estado
 │   │   ├── config.py            # porta, storage, extensões, tamanho máx.
 │   │   ├── storage.py           # estado em memória + operações + validações
+│   │   ├── locks.py             # RWLock + LockManager (concorrência por arquivo)
 │   │   ├── models.py            # Pydantic: FileMeta, DirResponse
 │   │   ├── deps.py              # injeção do Storage
-│   │   └── routes/files.py      # endpoints REST
+│   │   └── routes/files.py      # endpoints REST (DIR / GET / PUT)
 │   └── storage/                 # pasta física dos documentos
 ├── tests/test_api.py            # testes pytest da API
 └── docs/
     ├── protocolo.md             # especificação do contrato REST
     └── entregas/                # documentação por entrega
-        └── entrega-1.md
+        ├── entrega-1.md
+        └── entrega-2.md
 ```
 
 ## Como rodar
@@ -85,7 +87,22 @@ para a interface interativa (Swagger).
 
 **Pelo navegador:** acesse `/docs` e use os botões *Try it out* dos endpoints.
 
-**Por linha de comando:** ver os comandos `curl` no [doc da entrega atual](docs/entregas/entrega-1.md#verificação).
+**Por linha de comando**:
+
+```bash
+# DIR — lista documentos com metadados (nome, tamanho, data, tipo)
+curl http://localhost:8000/api/files
+
+# PUT — envia um manual (o corpo da requisição é o conteúdo do arquivo)
+curl -X PUT --data-binary @regulamento.txt \
+     http://localhost:8000/api/files/regulamento.txt
+
+# GET — baixa o conteúdo do manual
+curl http://localhost:8000/api/files/regulamento.txt
+```
+
+Exemplos completos no
+documento da [Entrega 2](docs/entregas/entrega-2.md#verificação).
 
 **Testes automatizados** (a partir da raiz do projeto):
 
@@ -101,3 +118,4 @@ como verificar. O protocolo REST do servidor está em [`docs/protocolo.md`](docs
 | # | Documento | Foco |
 |---|---|---|
 | **1** | [`docs/entregas/entrega-1.md`](docs/entregas/entrega-1.md) | Arquitetura e Escopo |
+| **2** | [`docs/entregas/entrega-2.md`](docs/entregas/entrega-2.md) | Comunicação e Core (multicliente + GET + RWLock + logs) |

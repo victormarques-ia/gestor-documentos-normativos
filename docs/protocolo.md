@@ -23,8 +23,8 @@ Na versão FastAPI, cada comando vira um endpoint REST com semântica HTTP:
 | Comando | Método + rota | Status |
 |---|---|---|
 | `DIR` | `GET /api/files` | ✅ implementado |
-| `PUT <nome>` | `PUT /api/files/{nome}` | ✅ implementado (upload isolado) |
-| `GET <nome>` | `GET /api/files/{nome}` | 📄 documentado |
+| `PUT <nome>` | `PUT /api/files/{nome}` | ✅ implementado |
+| `GET <nome>` | `GET /api/files/{nome}` | ✅ implementado |
 
 ---
 
@@ -56,7 +56,7 @@ Campos de `FileMeta`:
 | `modified_at` | string (ISO 8601, UTC) | data/hora da última modificação |
 | `content_type` | string | `text/plain` ou `text/markdown` |
 
-### `PUT /api/files/{nome}` — PUT *(upload isolado)*
+### `PUT /api/files/{nome}` — PUT
 Cria ou sobrescreve um documento. **Corpo da requisição = conteúdo do arquivo**
 (`Content-Type: text/plain`).
 - `201`: sucesso; corpo = `FileMeta` do arquivo gravado.
@@ -64,18 +64,18 @@ Cria ou sobrescreve um documento. **Corpo da requisição = conteúdo do arquivo
 - `413`: conteúdo acima do tamanho máximo (5 MB).
 - `415`: extensão não permitida (apenas `.txt`, `.md`).
 
-Idempotência: reenviar o mesmo `{nome}` sobrescreve o conteúdo.
-O PUT atende uma requisição por vez nesta versão. O controle de concorrência
-(escrita exclusiva enquanto leitores ativos terminam) está documentado abaixo
-em [Regras de validação](#regras-de-validação).
+Idempotência: reenviar o mesmo `{nome}` sobrescreve o conteúdo. A gravação
+acontece sob *write-lock* exclusivo do arquivo (aguarda leitores ativos
+terminarem) e é executada no *threadpool* via `run_in_threadpool`, evitando
+travar o *event loop*.
 
-### `GET /api/files/{nome}` — GET *(documentado, ainda não implementado)*
+### `GET /api/files/{nome}` — GET
 Baixa o conteúdo do documento.
 - `200`: corpo = conteúdo; cabeçalho `Content-Disposition: attachment; filename="<nome>"`; `Content-Type: text/plain; charset=utf-8`.
 - `400`: nome inválido. `404`: arquivo não encontrado.
 
-Estratégia desenhada: função síncrona (`def`) executada pelo Starlette no
-*threadpool*, permitindo que múltiplos `GET` corram em paralelo no mesmo
+Implementado como função síncrona (`def`) executada pelo Starlette no
+*threadpool*, permitindo que múltiplos `GET` rodem em paralelo no mesmo
 arquivo, todos segurando o *read-lock* do `RWLock` desse arquivo.
 
 ---

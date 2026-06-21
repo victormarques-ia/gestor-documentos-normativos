@@ -3,18 +3,24 @@ Camada de armazenamento: pasta física + índice de metadados em memória.
 
 ESTADO CENTRAL EM MEMÓRIA
 -------------------------
-  - files_meta: dict[str, FileMeta]  -> índice de metadados por nome de arquivo
+  - files_meta:   dict[str, FileMeta]  -> índice de metadados por nome
+  - locks:        LockManager           -> um RWLock por arquivo
+  - _meta_guard:  threading.Lock        -> protege o dict files_meta
 
 O filesystem (STORAGE_DIR) é a FONTE DA VERDADE; o índice em memória é
 reconstruído no startup (scan da pasta) e atualizado a cada escrita (PUT).
 
-Esta versão não inclui controle de concorrência: operações de leitura (DIR)
-e escrita (PUT) acessam o índice e o disco diretamente, sem locks.
+CONCORRÊNCIA
+------------
+O `RWLock` por arquivo permite N leitores simultâneos (GET no mesmo arquivo
+em paralelo) OU 1 escritor exclusivo (PUT bloqueia leitores ativos).
 """
 import pathlib
+import threading
 from datetime import datetime, timezone
 
 from .config import ALLOWED_EXTENSIONS, MAX_FILE_SIZE, STORAGE_DIR
+from .locks import LockManager
 from .models import FileMeta
 
 
@@ -35,6 +41,10 @@ class EmptyContent(Exception):
     """Upload sem conteúdo."""
 
 
+class FileNotFoundInStorage(Exception):
+    """Documento solicitado não existe."""
+
+
 class Storage:
     """Encapsula o estado central em memória e as operações sobre os arquivos."""
 
@@ -42,11 +52,10 @@ class Storage:
         self.dir = pathlib.Path(storage_dir)
         self.dir.mkdir(parents=True, exist_ok=True)
         self.files_meta: dict[str, FileMeta] = {}
+        self.locks = LockManager()
+        self._meta_guard = threading.Lock()
         self.scan()
 
-    # ------------------------------------------------------------------ #
-    # Validações (regras de formato e de negócio)                          #
-    # ------------------------------------------------------------------ #
     def _safe_path(self, filename: str) -> pathlib.Path:
         """Rejeita nomes com separadores de diretório ou ponto inicial."""
         if not filename or "/" in filename or "\\" in filename or filename.startswith("."):
@@ -58,9 +67,6 @@ class Storage:
         if pathlib.Path(filename).suffix.lower() not in ALLOWED_EXTENSIONS:
             raise UnsupportedType(filename)
 
-    # ------------------------------------------------------------------ #
-    # Metadados                                                            #
-    # ------------------------------------------------------------------ #
     @staticmethod
     def _build_meta(path: pathlib.Path) -> FileMeta:
         stat = path.stat()
@@ -72,26 +78,28 @@ class Storage:
         )
 
     def scan(self) -> None:
-        """(Re)constrói o índice de metadados a partir da pasta física.
+        with self._meta_guard:
+            self.files_meta = {
+                p.name: self._build_meta(p)
+                for p in sorted(self.dir.iterdir())
+                if p.is_file() and not p.name.startswith(".")
+            }
 
-        Ignora arquivos ocultos (ex.: .gitkeep) — coerente com `_safe_path`,
-        que não permite documentos com nome iniciado por ponto.
-        """
-        self.files_meta = {
-            p.name: self._build_meta(p)
-            for p in sorted(self.dir.iterdir())
-            if p.is_file() and not p.name.startswith(".")
-        }
-
-    # ------------------------------------------------------------------ #
-    # Operações implementadas na Entrega 1 (DIR + PUT isolado)             #
-    # ------------------------------------------------------------------ #
     def list_files(self) -> list[FileMeta]:
         """DIR — devolve os metadados de todos os documentos."""
-        return sorted(self.files_meta.values(), key=lambda m: m.name)
+        with self._meta_guard:
+            return sorted(self.files_meta.values(), key=lambda m: m.name)
+
+    def read_file(self, filename: str) -> bytes:
+        """GET — leitura sob read-lock (vários leitores em paralelo)."""
+        path = self._safe_path(filename)
+        if not path.exists():
+            raise FileNotFoundInStorage(filename)
+        with self.locks.get(filename).read():
+            return path.read_bytes()
 
     def write_file(self, filename: str, content: bytes) -> FileMeta:
-        """PUT — gravação isolada, sem controle de concorrência."""
+        """PUT — gravação sob write-lock (exclusiva). Valida antes de gravar."""
         path = self._safe_path(filename)
         self._validate_extension(filename)
         if not content:
@@ -99,8 +107,10 @@ class Storage:
         if len(content) > MAX_FILE_SIZE:
             raise FileTooLarge(len(content))
 
-        path.write_bytes(content)
+        with self.locks.get(filename).write():
+            path.write_bytes(content)
 
         meta = self._build_meta(path)
-        self.files_meta[filename] = meta
+        with self._meta_guard:
+            self.files_meta[filename] = meta
         return meta

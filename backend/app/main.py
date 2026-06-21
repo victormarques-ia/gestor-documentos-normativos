@@ -2,28 +2,43 @@
 CIN0143 — Sistemas Distribuídos | Equipe 08 — Gestor de Documentos Normativos
 
 Servidor FastAPI: evolução do servidor de sockets TCP para um framework web.
-Sobe em PORTA FIXA (uvicorn), aceita MÚLTIPLAS CONEXÕES e expõe os comandos do
-protocolo original (DIR/GET/PUT) como endpoints REST, com SWAGGER em /docs.
+Sobe em PORTA FIXA (uvicorn), aceita MÚLTIPLAS CONEXÕES e expõe os comandos
+do protocolo (DIR/GET/PUT) como endpoints REST, com SWAGGER em /docs.
 
 Como rodar:
     uvicorn app.main:app --reload --port 8000   (a partir de backend/)
     ou: python -m app.main
 """
+import logging
+import time
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 
 from .config import HOST, PORT
 from .routes import files
 from .storage import Storage
 
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+log = logging.getLogger("gestor")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # STARTUP: monta o estado central em memória varrendo a pasta física.
-    app.state.storage = Storage()
+    storage = Storage()
+    app.state.storage = storage
+    log.info(
+        "servidor pronto — storage=%s, documentos indexados=%d",
+        storage.dir,
+        len(storage.files_meta),
+    )
     yield
-    # SHUTDOWN: estado é em memória/disco, nada a liberar.
+    log.info("servidor encerrando")
 
 
 app = FastAPI(
@@ -34,9 +49,27 @@ app = FastAPI(
         "**Protocolo:** `DIR` → `GET /api/files` · `GET <nome>` → `GET /api/files/{nome}` "
         "· `PUT <nome>` → `PUT /api/files/{nome}`."
     ),
-    version="0.1.0",
+    version="0.2.0",
     lifespan=lifespan,
 )
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    client = f"{request.client.host}:{request.client.port}" if request.client else "?"
+    started = time.perf_counter()
+    response = await call_next(request)
+    elapsed_ms = (time.perf_counter() - started) * 1000
+    logging.getLogger("gestor.http").info(
+        "%s %s -> %d (%.1fms) [cliente=%s]",
+        request.method,
+        request.url.path,
+        response.status_code,
+        elapsed_ms,
+        client,
+    )
+    return response
+
 
 app.include_router(files.router)
 
