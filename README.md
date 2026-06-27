@@ -49,20 +49,25 @@ projeto-sistemas-distribuidos-equipe-8/
 ├── conftest.py                  # torna backend/app importável nos testes
 ├── backend/
 │   ├── app/
-│   │   ├── main.py              # app FastAPI, /health, logging, startup do estado
+│   │   ├── main.py              # app FastAPI, /health, logging, startup, mount UI
 │   │   ├── config.py            # porta, storage, extensões, tamanho máx.
 │   │   ├── storage.py           # estado em memória + operações + validações
 │   │   ├── locks.py             # RWLock + LockManager (concorrência por arquivo)
 │   │   ├── models.py            # Pydantic: FileMeta, DirResponse
 │   │   ├── deps.py              # injeção do Storage
-│   │   └── routes/files.py      # endpoints REST (DIR / GET / PUT)
+│   │   └── routes/files.py      # endpoints REST + SSE (/api/files/events)
+│   ├── static/                  # interface gráfica (Alpine.js, sem build)
+│   │   ├── index.html
+│   │   ├── styles.css
+│   │   └── app.js
 │   └── storage/                 # pasta física dos documentos
 ├── tests/test_api.py            # testes pytest da API
 └── docs/
     ├── protocolo.md             # especificação do contrato REST
     └── entregas/                # documentação por entrega
         ├── entrega-1.md
-        └── entrega-2.md
+        ├── entrega-2.md
+        └── entrega-3.md
 ```
 
 ## Como rodar
@@ -80,12 +85,28 @@ cd backend
 uvicorn app.main:app --reload --port 8000
 ```
 
-Servidor no ar em `http://localhost:8000`. Abra **`http://localhost:8000/docs`**
-para a interface interativa (Swagger).
+Servidor no ar em `http://localhost:8000`. Endpoints disponíveis:
+
+- **`/ui/`** → **interface gráfica** (explorador visual de manuais, upload/download com barras de progresso, reatividade em tempo real via SSE).
+- **`/docs`** → Swagger UI para exercitar a API diretamente.
+- **`/api/files`** → contrato REST (DIR / GET / PUT).
+
+## Interface gráfica
+
+Acesse **`http://localhost:8000/ui/`** após subir o servidor. A UI suporta:
+
+- **Listagem** automática dos documentos (DIR) com metadados — atualiza em tempo real via SSE quando outro cliente faz upload.
+- **Upload** (PUT) com validação (extensão `.txt`/`.md`, tamanho ≤ 5 MB) e **barra de progresso real**.
+- **Download** (GET) com **barra de progresso real** (lê em streaming via `Content-Length`).
+- **Tratamento de erros** visual via toasts (400/404/413/415).
+- **Indicador de status** do canal SSE no header.
+
+Stack do frontend: HTML + Alpine.js (via CDN) + CSS — sem Node, sem build, sem
+deploy separado. Tudo servido pelo próprio FastAPI.
 
 ## Como testar
 
-**Pelo navegador:** acesse `/docs` e use os botões *Try it out* dos endpoints.
+**Pelo navegador:** abra `/ui/` para a interface, ou `/docs` para o Swagger.
 
 **Por linha de comando**:
 
@@ -119,3 +140,4 @@ como verificar. O protocolo REST do servidor está em [`docs/protocolo.md`](docs
 |---|---|---|
 | **1** | [`docs/entregas/entrega-1.md`](docs/entregas/entrega-1.md) | Arquitetura e Escopo |
 | **2** | [`docs/entregas/entrega-2.md`](docs/entregas/entrega-2.md) | Comunicação e Core (multicliente + GET + RWLock + logs) |
+| **3** | [`docs/entregas/entrega-3.md`](docs/entregas/entrega-3.md) | Interface gráfica (Alpine.js + SSE em tempo real, barras de progresso reais) |

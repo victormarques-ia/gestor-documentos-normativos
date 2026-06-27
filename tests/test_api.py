@@ -78,6 +78,58 @@ def test_get_inexistente_404(client):
     assert client.get("/api/files/nao_existe.txt").status_code == 404
 
 
+def test_ui_servido(client):
+    """A interface gráfica é servida pelo próprio FastAPI em /ui/ (Entrega 3)."""
+    r = client.get("/ui/")
+    assert r.status_code == 200
+    body = r.text.lower()
+    assert "<!doctype" in body or "<html" in body
+    # marker específico da nossa UI
+    assert "gestor de documentos" in body
+
+
+def test_sse_broadcast_alimenta_subscribers():
+    """
+    O mecanismo de broadcast SSE coloca o evento em todas as queues de subscribers.
+
+    O endpoint /api/files/events em si é um stream HTTP infinito (não fecha até o
+    cliente desconectar), então testamos a lógica de pub/sub interna que ele usa.
+    A integração HTTP é validada no smoke test manual (ver entrega-3.md).
+    """
+    import asyncio
+    from app.routes.files import _broadcast, _subscribers
+
+    q: asyncio.Queue = asyncio.Queue()
+    _subscribers.append(q)
+    try:
+        _broadcast("file_updated", "teste.txt")
+        assert q.qsize() == 1
+        event, data = q.get_nowait()
+        assert event == "file_updated"
+        assert data == "teste.txt"
+    finally:
+        _subscribers.remove(q)
+
+
+def test_put_dispara_broadcast_sse(client):
+    """Após um PUT bem-sucedido, um evento file_updated é entregue a um subscriber ativo."""
+    import asyncio
+    from app.routes.files import _subscribers
+
+    q: asyncio.Queue = asyncio.Queue()
+    _subscribers.append(q)
+    try:
+        r = client.put("/api/files/notificacao.txt", content="abc")
+        assert r.status_code == 201
+        # broadcast foi chamado pelo endpoint -> evento na queue
+        assert q.qsize() == 1
+        event, data = q.get_nowait()
+        assert event == "file_updated"
+        assert data == "notificacao.txt"
+    finally:
+        _subscribers.remove(q)
+
+
 def test_leituras_concorrentes_mesmo_arquivo(tmp_path):
     """8 leitores simultâneos no mesmo arquivo devolvem o conteúdo íntegro."""
     storage = Storage(storage_dir=tmp_path)

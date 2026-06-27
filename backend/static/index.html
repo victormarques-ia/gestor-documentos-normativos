@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gestor de Documentos Normativos — Equipe 08</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+  <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body>
+  <div class="app" x-data="gestorApp()" x-init="connect()" x-cloak>
+
+    <header>
+      <div>
+        <h1>Gestor de Documentos Normativos</h1>
+        <p class="subtitle">CIN0143 — Sistemas Distribuídos · Equipe 08</p>
+      </div>
+      <span class="badge" :class="online ? 'on' : 'off'"
+            x-text="online ? '● conectado' : '● offline'"
+            title="Stream SSE com o servidor"></span>
+    </header>
+
+    <!-- Upload -->
+    <section class="upload card">
+      <h2>Enviar manual (PUT)</h2>
+      <label class="file-input"
+             :class="{ 'dragging': dragging }"
+             @dragover.prevent="dragging = true"
+             @dragenter.prevent="dragging = true"
+             @dragleave.prevent="dragging = false"
+             @drop.prevent="onDrop($event)">
+        <input type="file" accept=".txt,.md" @change="onFile($event)" :disabled="uploading">
+        <span x-show="!uploading && !dragging">📄 Selecionar arquivo ou arrastar aqui (.txt, .md, ≤ 5 MB)</span>
+        <span x-show="!uploading && dragging">⬇ Solte para enviar</span>
+        <span x-show="uploading">Enviando...</span>
+      </label>
+      <div class="progress-row" x-show="uploading">
+        <progress :value="uploadPct" max="100"></progress>
+        <span class="pct" x-text="`${Math.round(uploadPct)}%`"></span>
+      </div>
+    </section>
+
+    <!-- Lista de manuais (DIR) -->
+    <section class="list card">
+      <div class="list-header">
+        <h2>Manuais disponíveis (DIR)</h2>
+        <span class="count" x-text="`${files.length} documento(s)`"></span>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Tamanho</th>
+            <th>Modificado</th>
+            <th class="actions-col">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="f in files" :key="f.name">
+            <tr>
+              <td><code x-text="f.name"></code></td>
+              <td x-text="formatBytes(f.size_bytes)"></td>
+              <td x-text="formatDate(f.modified_at)"></td>
+              <td class="actions-col">
+                <button @click="download(f.name)" :disabled="downloads[f.name] !== undefined">
+                  <span x-show="downloads[f.name] === undefined">Baixar</span>
+                  <span x-show="downloads[f.name] !== undefined" x-text="`${Math.round(downloads[f.name] || 0)}%`"></span>
+                </button>
+                <progress class="dl"
+                          :value="downloads[f.name] || 0" max="100"
+                          x-show="downloads[f.name] !== undefined"></progress>
+              </td>
+            </tr>
+          </template>
+          <tr x-show="files.length === 0">
+            <td colspan="4" class="empty">Nenhum documento enviado ainda.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Toasts -->
+    <ul class="toasts" aria-live="polite">
+      <template x-for="t in toasts" :key="t.id">
+        <li :class="t.kind" x-text="t.msg"></li>
+      </template>
+    </ul>
+
+    <footer>
+      <a href="/docs" target="_blank">Swagger /docs</a> ·
+      <a href="/api/files" target="_blank">GET /api/files</a> ·
+      <span>Servidor: <code>:8000</code></span>
+    </footer>
+  </div>
+</body>
+</html>

@@ -10,10 +10,12 @@ Como rodar:
     ou: python -m app.main
 """
 import logging
+import pathlib
 import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.staticfiles import StaticFiles
 
 from .config import HOST, PORT
 from .routes import files
@@ -85,13 +87,19 @@ def root():
     return {
         "service": "Gestor de Documentos Normativos",
         "equipe": 8,
+        "ui": "/ui/",
         "docs": "/docs",
         "endpoints": [
             "GET /api/files",
             "GET /api/files/{nome}",
             "PUT /api/files/{nome}",
+            "GET /api/files/events  (SSE)",
         ],
     }
+
+
+STATIC_DIR = pathlib.Path(__file__).resolve().parent.parent / "static"
+app.mount("/ui", StaticFiles(directory=STATIC_DIR, html=True), name="ui")
 
 
 if __name__ == "__main__":
