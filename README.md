@@ -47,20 +47,20 @@ projeto-sistemas-distribuidos-equipe-8/
 ├── README.md                    # este arquivo (visão geral, atemporal)
 ├── requirements.txt
 ├── conftest.py                  # torna backend/app importável nos testes
-├── backend/
+├── backend/                     # servidor FastAPI
 │   ├── app/
-│   │   ├── main.py              # app FastAPI, /health, logging, startup, mount UI
+│   │   ├── main.py              # app FastAPI, /health, logging, mount /ui → frontend/
 │   │   ├── config.py            # porta, storage, extensões, tamanho máx.
 │   │   ├── storage.py           # estado em memória + operações + validações
 │   │   ├── locks.py             # RWLock + LockManager (concorrência por arquivo)
 │   │   ├── models.py            # Pydantic: FileMeta, DirResponse
 │   │   ├── deps.py              # injeção do Storage
 │   │   └── routes/files.py      # endpoints REST + SSE (/api/files/events)
-│   ├── static/                  # interface gráfica (Alpine.js, sem build)
-│   │   ├── index.html
-│   │   ├── styles.css
-│   │   └── app.js
-│   └── storage/                 # pasta física dos documentos
+│   └── storage/                 # pasta física dos documentos (persistência em disco)
+├── frontend/                    # cliente web (HTML + Alpine.js + CSS, sem build)
+│   ├── index.html               # servido pelo FastAPI na raiz (http://localhost:8000/)
+│   ├── styles.css
+│   └── app.js
 ├── tests/test_api.py            # testes pytest da API
 └── docs/
     ├── protocolo.md             # especificação do contrato REST
@@ -87,13 +87,13 @@ uvicorn app.main:app --reload --port 8000
 
 Servidor no ar em `http://localhost:8000`. Endpoints disponíveis:
 
-- **`/ui/`** → **interface gráfica** (explorador visual de manuais, upload/download com barras de progresso, reatividade em tempo real via SSE).
+- **`/`** (raiz) → **interface gráfica** (explorador visual de manuais, upload/download com barras de progresso, reatividade em tempo real via SSE).
 - **`/docs`** → Swagger UI para exercitar a API diretamente.
 - **`/api/files`** → contrato REST (DIR / GET / PUT).
 
 ## Interface gráfica
 
-Acesse **`http://localhost:8000/ui/`** após subir o servidor. A UI suporta:
+Acesse **`http://localhost:8000`** após subir o servidor. A UI suporta:
 
 - **Listagem** automática dos documentos (DIR) com metadados — atualiza em tempo real via SSE quando outro cliente faz upload.
 - **Upload** (PUT) com validação (extensão `.txt`/`.md`, tamanho ≤ 5 MB) e **barra de progresso real**.
@@ -106,7 +106,7 @@ deploy separado. Tudo servido pelo próprio FastAPI.
 
 ## Como testar
 
-**Pelo navegador:** abra `/ui/` para a interface, ou `/docs` para o Swagger.
+**Pelo navegador:** abra `http://localhost:8000` para a interface, ou `/docs` para o Swagger.
 
 **Por linha de comando**:
 

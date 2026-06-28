@@ -79,13 +79,19 @@ def test_get_inexistente_404(client):
 
 
 def test_ui_servido(client):
-    """A interface gráfica é servida pelo próprio FastAPI em /ui/ (Entrega 3)."""
-    r = client.get("/ui/")
+    """A interface gráfica é servida pelo próprio FastAPI na raiz (Entrega 3)."""
+    r = client.get("/")
     assert r.status_code == 200
     body = r.text.lower()
     assert "<!doctype" in body or "<html" in body
     # marker específico da nossa UI
     assert "gestor de documentos" in body
+
+
+def test_ui_assets_servidos(client):
+    """styles.css e app.js servidos como estáticos da raiz."""
+    assert client.get("/styles.css").status_code == 200
+    assert client.get("/app.js").status_code == 200
 
 
 def test_sse_broadcast_alimenta_subscribers():

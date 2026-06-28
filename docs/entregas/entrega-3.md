@@ -27,17 +27,18 @@ Requisitos:
 
 | Item | Onde está |
 |---|---|
-| Interface gráfica do cliente (explorador visual) | [`backend/static/index.html`](../../backend/static/index.html) |
-| Lógica Alpine (estado, handlers, SSE) | [`backend/static/app.js`](../../backend/static/app.js) |
-| Estilo (dark, responsivo) | [`backend/static/styles.css`](../../backend/static/styles.css) |
-| Servida pelo FastAPI em `/ui/` (deploy único) | [`backend/app/main.py`](../../backend/app/main.py) |
-| Comando `GET` integrado à UI (clique → download) | [`backend/static/app.js`](../../backend/static/app.js) (função `download`) |
-| **Barra de progresso** real para upload (PUT via XHR) | [`backend/static/app.js`](../../backend/static/app.js) (função `upload`) |
-| **Barra de progresso** real para download (fetch + stream + Content-Length) | [`backend/static/app.js`](../../backend/static/app.js) (função `download`) |
+| Interface gráfica do cliente (explorador visual) | [`frontend/index.html`](../../frontend/index.html) |
+| Lógica Alpine (estado, handlers, SSE, drag-and-drop) | [`frontend/app.js`](../../frontend/app.js) |
+| Estilo (dark, responsivo) | [`frontend/styles.css`](../../frontend/styles.css) |
+| Servida pelo FastAPI na raiz (deploy único) | [`backend/app/main.py`](../../backend/app/main.py) (mount em `/` apontando para `frontend/`) |
+| Comando `GET` integrado à UI (clique → download) | [`frontend/app.js`](../../frontend/app.js) (função `download`) |
+| **Barra de progresso** real para upload (PUT via XHR) | [`frontend/app.js`](../../frontend/app.js) (função `upload`) |
+| **Barra de progresso** real para download (fetch + stream + Content-Length) | [`frontend/app.js`](../../frontend/app.js) (função `download`) |
 | Travas de leitura paralela no servidor (downloads simultâneos) | [`backend/app/locks.py`](../../backend/app/locks.py) (RWLock — pronto desde a E2) |
 | Reatividade em tempo real entre clientes (SSE) | [`backend/app/routes/files.py`](../../backend/app/routes/files.py) (`/events` + `_broadcast`) |
-| Tratamento de erros na interface (toasts) | [`backend/static/app.js`](../../backend/static/app.js) (função `toast`) |
-| Validação client-side (extensão, tamanho, vazio) | [`backend/static/app.js`](../../backend/static/app.js) (função `upload`) |
+| Tratamento de erros na interface (toasts) | [`frontend/app.js`](../../frontend/app.js) (função `toast`) |
+| Validação client-side (extensão, tamanho, vazio) | [`frontend/app.js`](../../frontend/app.js) (função `upload`) |
+| Drag-and-drop na área de upload | [`frontend/index.html`](../../frontend/index.html) (área `.file-input`) + [`frontend/app.js`](../../frontend/app.js) (`onDrop`) |
 | Testes (15 testes — inclui UI e broadcast SSE) | [`tests/test_api.py`](../../tests/test_api.py) |
 
 ---
@@ -75,7 +76,7 @@ cd backend
 uvicorn app.main:app --port 8000
 ```
 
-Acesse **http://localhost:8000/ui/** no navegador.
+Acesse **http://localhost:8000/** no navegador.
 
 A tela traz:
 - Indicador de **status SSE** ("● conectado" / "● offline") no canto direito do header.
@@ -90,7 +91,7 @@ A tela traz:
 
 ### Fluxo manual na UI
 
-1. Abrir `http://localhost:8000/ui/` — lista vazia + badge "● conectado".
+1. Abrir `http://localhost:8000/` — lista vazia + badge "● conectado".
 2. Clicar no input de arquivo → selecionar um `.txt` ou `.md` → barra de upload evolui 0% → 100% → toast verde "enviado: ...".
 3. Lista re-renderiza com o arquivo aparecendo (instantâneo via SSE).
 4. Clicar **Baixar** → barra de download evolui → arquivo baixa no navegador → toast verde "baixado: ...".
@@ -101,14 +102,14 @@ A tela traz:
 
 ### Reatividade entre abas
 
-1. Abrir **duas abas** em `http://localhost:8000/ui/`.
+1. Abrir **duas abas** em `http://localhost:8000/`.
 2. Em uma das abas, fazer um upload.
 3. A **outra aba atualiza a lista em < 100ms** — sem nenhum clique do usuário.
 4. Nos logs do servidor: `SSE broadcast: file_updated=<nome> (2 subscriber(s))`.
 
 ### Downloads simultâneos do mesmo arquivo
 
-1. Abrir **3 abas** em `/ui/`.
+1. Abrir **3 abas** em `http://localhost:8000/`.
 2. Em cada aba, clicar **Baixar** no mesmo arquivo em sequência rápida.
 3. As 3 barras de progresso evoluem em paralelo (sem uma esperar a outra).
 4. Nos logs:

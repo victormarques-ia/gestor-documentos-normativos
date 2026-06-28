@@ -82,24 +82,8 @@ def health():
     return {"status": "ok"}
 
 
-@app.get("/", tags=["infra"], summary="Informações da API")
-def root():
-    return {
-        "service": "Gestor de Documentos Normativos",
-        "equipe": 8,
-        "ui": "/ui/",
-        "docs": "/docs",
-        "endpoints": [
-            "GET /api/files",
-            "GET /api/files/{nome}",
-            "PUT /api/files/{nome}",
-            "GET /api/files/events  (SSE)",
-        ],
-    }
-
-
-STATIC_DIR = pathlib.Path(__file__).resolve().parent.parent / "static"
-app.mount("/ui", StaticFiles(directory=STATIC_DIR, html=True), name="ui")
+FRONTEND_DIR = pathlib.Path(__file__).resolve().parent.parent.parent / "frontend"
+app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="ui")
 
 
 if __name__ == "__main__":
