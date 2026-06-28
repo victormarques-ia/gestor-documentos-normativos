@@ -62,7 +62,7 @@ Cria ou sobrescreve um documento. **Corpo da requisição = conteúdo do arquivo
 - `201`: sucesso; corpo = `FileMeta` do arquivo gravado.
 - `400`: nome inválido **ou** conteúdo vazio.
 - `413`: conteúdo acima do tamanho máximo (5 MB).
-- `415`: extensão não permitida (apenas `.txt`, `.md`).
+- `415`: extensão não permitida.
 
 Idempotência: reenviar o mesmo `{nome}` sobrescreve o conteúdo. A gravação
 acontece sob *write-lock* exclusivo do arquivo (aguarda leitores ativos
@@ -92,7 +92,7 @@ Formato padrão do FastAPI:
 | `400 Bad Request` | nome inseguro (vazio, `/`, `\`, ponto inicial) ou conteúdo vazio |
 | `404 Not Found` | `GET` de arquivo inexistente |
 | `413 Payload Too Large` | upload acima de 5 MB |
-| `415 Unsupported Media Type` | extensão fora de `{.txt, .md}` |
+| `415 Unsupported Media Type` |
 
 ---
 
@@ -100,7 +100,7 @@ Formato padrão do FastAPI:
 
 1. **Nome seguro** — rejeita vazio, separadores de caminho (`/`, `\`) e ponto
    inicial, evitando *path traversal* (ex.: `../../etc/passwd`).
-2. **Somente texto** — extensão deve estar em `ALLOWED_EXTENSIONS` (`.txt`, `.md`).
+2. **Somente texto** — extensão deve estar em `ALLOWED_EXTENSIONS`.
 3. **Tamanho** — `0 < tamanho <= 5 MB`.
 4. **Concorrência** — leitura compartilhada (vários `GET` simultâneos),
    escrita exclusiva (`PUT` aguarda leitores ativos), via `RWLock` por arquivo.

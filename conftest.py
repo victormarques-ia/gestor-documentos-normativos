@@ -1,4 +1,3 @@
-"""Configuração do pytest: torna o pacote `app` (em backend/) importável."""
 import pathlib
 import sys
 

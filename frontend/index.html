@@ -31,7 +31,7 @@
              @dragleave.prevent="dragging = false"
              @drop.prevent="onDrop($event)">
         <input type="file" accept=".txt,.md" @change="onFile($event)" :disabled="uploading">
-        <span x-show="!uploading && !dragging">📄 Selecionar arquivo ou arrastar aqui (.txt, .md, ≤ 5 MB)</span>
+        <span x-show="!uploading && !dragging">📄 Selecionar arquivo ou arrastar aqui (≤ 5 MB)</span>
         <span x-show="!uploading && dragging">⬇ Solte para enviar</span>
         <span x-show="uploading">Enviando...</span>
       </label>

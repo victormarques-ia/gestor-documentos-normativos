@@ -1,4 +1,3 @@
-"""Modelos Pydantic do contrato REST (payloads de entrada/saída)."""
 from datetime import datetime
 
 from pydantic import BaseModel

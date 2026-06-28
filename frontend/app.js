@@ -45,8 +45,8 @@ function gestorApp() {
 
     upload(file) {
       const ext = "." + file.name.toLowerCase().split(".").pop();
-      if (![".txt", ".md"].includes(ext))
-        return this.toast("error", "extensão não permitida (use .txt ou .md)");
+      if (![".txt", ".md", ".rst", ".docx", ".pdf", ".csv", ".json", ".xml"].includes(ext))
+        return this.toast("error", "extensão não permitida");
       if (file.size === 0)
         return this.toast("error", "arquivo vazio");
       if (file.size > 5 * 1024 * 1024)

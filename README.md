@@ -8,7 +8,6 @@ Docente: David J M Cavalcanti
 - Gabriel Albertin Vieira
 - Ithalo Rannieri Araujo Soares
 - Talisson Mendes
-- Tiago Ferreira
 - Victor Silva Marques de Oliveira
 
 ---
@@ -96,7 +95,7 @@ Servidor no ar em `http://localhost:8000`. Endpoints disponíveis:
 Acesse **`http://localhost:8000`** após subir o servidor. A UI suporta:
 
 - **Listagem** automática dos documentos (DIR) com metadados — atualiza em tempo real via SSE quando outro cliente faz upload.
-- **Upload** (PUT) com validação (extensão `.txt`/`.md`, tamanho ≤ 5 MB) e **barra de progresso real**.
+- **Upload** (PUT) com validação (tamanho ≤ 5 MB) e **barra de progresso real**.
 - **Download** (GET) com **barra de progresso real** (lê em streaming via `Content-Length`).
 - **Tratamento de erros** visual via toasts (400/404/413/415).
 - **Indicador de status** do canal SSE no header.
@@ -129,6 +128,48 @@ documento da [Entrega 2](docs/entregas/entrega-2.md#verificação).
 
 ```bash
 pytest -v
+```
+
+### Testes E2E com Playwright
+
+Os cenários de browser ficam em `tests/test_e2e_playwright.py`, classe
+`TestPlaywrightBrowserE2E`.
+
+```bash
+# 1) Instalar dependências Python (inclui playwright)
+pip install -r requirements.txt
+
+# 2) Instalar binários do navegador (uma vez por máquina)
+python3 -m playwright install chromium
+```
+
+Executar somente os testes Playwright:
+
+```bash
+python3 -m pytest tests/test_e2e_playwright.py -q -x
+```
+
+Executar em modo visual (abrindo o browser):
+
+```bash
+# Janela visível + execução mais lenta para acompanhar
+PW_HEADFUL=1 PW_SLOWMO_MS=1200 python3 -m pytest tests/test_e2e_playwright.py -x -s
+
+# Opcional: modo debug interativo do Playwright
+PW_HEADFUL=1 PWDEBUG=1 python3 -m pytest tests/test_e2e_playwright.py -x -s
+```
+
+### Como rodar os outros testes
+
+```bash
+# Apenas API
+python3 -m pytest tests/test_api.py -v
+
+# E2E sem browser (TestClient, concorrência, storage, SSE interno etc.)
+python3 -m pytest tests/test_e2e.py -v
+
+# Todos os testes (API + E2E, incluindo Playwright)
+python3 -m pytest -v
 ```
 
 ## Entregas

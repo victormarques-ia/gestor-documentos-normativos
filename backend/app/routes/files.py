@@ -30,7 +30,6 @@ def _broadcast(event: str, data: str) -> None:
     log.info("SSE broadcast: %s=%s (%d subscriber(s))", event, data, len(_subscribers))
 
 
-# --- Endpoints ------------------------------------------------------------- #
 
 @router.get("", response_model=DirResponse, summary="DIR — lista os documentos")
 def list_files(storage: Storage = Depends(get_storage)):

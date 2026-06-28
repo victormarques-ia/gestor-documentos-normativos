@@ -1,5 +1,4 @@
 """
-CIN0143 — Sistemas Distribuídos | Equipe 08 — Gestor de Documentos Normativos
 
 Servidor FastAPI: evolução do servidor de sockets TCP para um framework web.
 Sobe em PORTA FIXA (uvicorn), aceita MÚLTIPLAS CONEXÕES e expõe os comandos
